@@ -3,6 +3,7 @@
         "*.c": "c",
         "sdl_ttf.h": "c",
         "stdbool.h": "c",
-        "render.h": "c"
+        "render.h": "c",
+        "sdl.h": "c"
     }
 }
