@@ -16,8 +16,26 @@
 
 #define PORT "9034"
 #define MAXDATASIZE 100
+#define MAX_MESSAGES 100
+#define MAX_MESSAGE_LENGTH 256
 
-// Get sockaddr, IPv4 or IPv6:
+char chat_messages[MAX_MESSAGES][MAX_MESSAGE_LENGTH];
+int message_count = 0;
+int message_start = 0;
+
+void add_message(char *new_message) {
+    if (message_count < MAX_MESSAGES) {
+
+        strncpy(chat_messages[message_count], new_message, MAX_MESSAGE_LENGTH - 1);
+        chat_messages[message_count][MAX_MESSAGE_LENGTH - 1] = '\0'; 
+        message_count++;
+    } else {
+        // Overwrite the oldest message (circular buffer logic)
+        strncpy(chat_messages[message_start], new_message, MAX_MESSAGE_LENGTH - 1);
+        chat_messages[message_start][MAX_MESSAGE_LENGTH - 1] = '\0';
+        message_start = (message_start + 1) % MAX_MESSAGES; // Move the start index
+    }
+}
 
 // Establish connection to the server
 int connect_to_server()
@@ -136,13 +154,15 @@ void client_conn(int sockfd, char **output_text, bool *running) {
             perror("send");
             *running = false;
         }
+
+        add_message(*output_text);
     }
 }
 
 
 
 // Render text to the SDL window
-void render_chat(SDL_Renderer *renderer, TTF_Font *font, const char *text) {
+void render_chat(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color color = {255, 255, 255, 255};
     SDL_Rect textbox = {50, 50, 500, 300};
 
@@ -150,12 +170,18 @@ void render_chat(SDL_Renderer *renderer, TTF_Font *font, const char *text) {
     SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
     SDL_RenderFillRect(renderer, &textbox);
 
-    // Render text if valid
-    if (text && text[0] != '\0') {
-        SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font, text, color, textbox.w - 10);
+    int y_offset = 0;
+    int line_height = 20;
+
+    // Render all chat messages
+    for (int i = 0; i < message_count; i++) {
+        int msg_index = (message_start + i) % MAX_MESSAGES;
+
+        SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font, chat_messages[msg_index], color, textbox.w - 10);
         if (surface) {
             SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-            SDL_Rect textRect = {textbox.x + 5, textbox.y + 5, surface->w, surface->h};
+            SDL_Rect textRect = {textbox.x + 5, textbox.y + y_offset + 5, surface->w, surface->h};
+            y_offset += line_height;
             SDL_RenderCopy(renderer, texture, NULL, &textRect);
             SDL_FreeSurface(surface);
             SDL_DestroyTexture(texture);
@@ -164,6 +190,7 @@ void render_chat(SDL_Renderer *renderer, TTF_Font *font, const char *text) {
         }
     }
 }
+
 
 
 int client(SDL_Renderer *renderer, TTF_Font *font)
@@ -184,7 +211,7 @@ int client(SDL_Renderer *renderer, TTF_Font *font)
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        render_chat(renderer, font, text);
+        render_chat(renderer, font);
 
         SDL_RenderPresent(renderer);
     }
