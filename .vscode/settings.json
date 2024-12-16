@@ -4,6 +4,9 @@
         "sdl_ttf.h": "c",
         "stdbool.h": "c",
         "render.h": "c",
-        "sdl.h": "c"
+        "sdl.h": "c",
+        "select.h": "c",
+        "socket.h": "c",
+        "netdb.h": "c"
     }
 }

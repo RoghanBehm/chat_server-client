@@ -1,6 +1,8 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -std=c99 -Iinclude
+CFLAGS = -Wall -Wextra -pedantic -std=c17 -D_POSIX_C_SOURCE=200809L -Iinclude -I/usr/include/SDL2 -D_REENTRANT -g
+LDFLAGS = -lSDL2 -lSDL2_ttf
+
 
 # SDL2 configuration
 SDL2_CFLAGS := $(shell sdl2-config --cflags)
@@ -23,6 +25,7 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) $(SDL2_CFLAGS) $^ -o $@ $(SDL2_LDFLAGS)
+
 
 # Rule to compile source files into object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
