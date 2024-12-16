@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include "addr.h"
 
+
 #define PORT "9034"
 #define MAXDATASIZE 100
 #define MAX_MESSAGES 100
@@ -92,8 +93,10 @@ void client_conn(int sockfd, char **output_text, bool *running) {
     FD_SET(STDIN_FILENO, &read_fds);
 
     int max_fd = sockfd > STDIN_FILENO ? sockfd : STDIN_FILENO;
-
-    if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) == -1) {
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100000;
+    if (select(max_fd + 1, &read_fds, NULL, NULL, &timeout) == -1) {
         perror("select");
         *running = false;
         return;
@@ -130,25 +133,41 @@ void client_conn(int sockfd, char **output_text, bool *running) {
     // Check for user input
     if (FD_ISSET(STDIN_FILENO, &read_fds)) {
         char input[MAXDATASIZE];
-        if (fgets(input, sizeof input, stdin) == NULL) {
-            printf("Goodbye!\n");
-            *running = false;
-            return;
-        }
+        ssize_t bytes_read = read(STDIN_FILENO, input, sizeof(input) - 1);
 
-        input[strcspn(input, "\n")] = '\0'; // Strip newline
+        if (bytes_read < 0) {
+        perror("read");
+        *running = false;
+        return;
+    }
 
-        // free current output_text
-        if (*output_text) {
-            free(*output_text);
-        }
-        // update output_text with new chat value 
-        *output_text = strdup(input);
-        if (!*output_text) {
-            perror("strdup");
-            *running = false;
-            return;
-        }
+    if (bytes_read == 0) {
+        printf("Goodbye!\n");
+        *running = false;
+        return;
+    }
+
+    // Null-terminate the input
+    input[bytes_read] = '\0';
+
+    // Remove the newline character, if present
+    char *newline = strchr(input, '\n');
+    if (newline) {
+        *newline = '\0';
+    }
+
+    // Free current output_text
+    if (*output_text) {
+        free(*output_text);
+    }
+
+    // Update output_text with new chat value
+    *output_text = strdup(input);
+    if (!*output_text) {
+        perror("strdup");
+        *running = false;
+        return;
+    }
         // send new output_text to server
         if (send(sockfd, input, strlen(input), 0) == -1) {
             perror("send");
@@ -191,32 +210,28 @@ void render_chat(SDL_Renderer *renderer, TTF_Font *font) {
     }
 }
 
+int conn_setup() {
+    int sockfd = connect_to_server();  // Use your existing connect_to_server function
+    if (sockfd == -1) {
+        fprintf(stderr, "Failed to initialize client connection.\n");
+        return -1;
+    }
+    return sockfd;
+}
 
-
-int client(SDL_Renderer *renderer, TTF_Font *font)
+void client(SDL_Renderer *renderer, TTF_Font *font, int sockfd, bool *running)
 {
-    int sockfd = connect_to_server();
-    if (sockfd == -1)
-    {
-        return 1;
+    static char *text = NULL; // Holds last received/sent message
+
+    // Handle client-side connection (non-blocking I/O)
+    client_conn(sockfd, &text, running);
+
+    // Render chat messages
+    render_chat(renderer, font);
+
+    // Free text buffer on cleanup
+    if (!*running && text) {
+        free(text);
+        text = NULL;
     }
-
-    bool running = true;
-    char *text = NULL;
-
-    while (running)
-    {
-        client_conn(sockfd, &text, &running);
-
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-
-        render_chat(renderer, font);
-
-        SDL_RenderPresent(renderer);
-    }
-
-    free(text);
-    close(sockfd);
-    return 0;
 }
