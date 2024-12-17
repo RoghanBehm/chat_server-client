@@ -118,7 +118,7 @@ void client_conn(int sockfd, char **output_text, bool *running) {
 
         buf[numbytes] = '\0';
 
-        // update output_textRenderFill
+        // update output_text
         if (*output_text) {
             free(*output_text); // Free existing memory
         }
@@ -184,9 +184,8 @@ void client_conn(int sockfd, char **output_text, bool *running) {
 }
 
 
-
-// Render text to the SDL window
-void render_chat(SDL_Renderer *renderer, TTF_Font *font) {
+// Render chat text to window
+void render_chat(SDL_Renderer *renderer, TTF_Font *font, char name[]) {
     
     SDL_Color color = {255, 255, 255, 255};
     SDL_Rect textbox = {50, 50, 500, 300};
@@ -201,8 +200,9 @@ void render_chat(SDL_Renderer *renderer, TTF_Font *font) {
     // Render all chat messages
     for (int i = 0; i < message_count; i++) {
         int msg_index = (message_start + i) % MAX_MESSAGES;
-
-        SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font, chat_messages[msg_index], color, textbox.w - 10);
+        char named_message[356];
+        snprintf(named_message, sizeof(named_message), "%s%s", name, chat_messages[msg_index]);
+        SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font, named_message, color, textbox.w - 10);
         if (surface) {
             SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
             SDL_Rect textRect = {textbox.x + 5, textbox.y + y_offset + 5, surface->w, surface->h};
@@ -217,7 +217,7 @@ void render_chat(SDL_Renderer *renderer, TTF_Font *font) {
 }
 
 int conn_setup() {
-    int sockfd = connect_to_server();  // Use your existing connect_to_server function
+    int sockfd = connect_to_server();
     if (sockfd == -1) {
         fprintf(stderr, "Failed to initialize client connection.\n");
         return -1;
@@ -225,7 +225,7 @@ int conn_setup() {
     return sockfd;
 }
 
-void client(SDL_Renderer *renderer, TTF_Font *font, int sockfd, bool *running)
+void client(SDL_Renderer *renderer, TTF_Font *font, int sockfd, bool *running, char name[])
 {
     static char *text = NULL; // Holds last received/sent message
 
@@ -233,7 +233,7 @@ void client(SDL_Renderer *renderer, TTF_Font *font, int sockfd, bool *running)
     client_conn(sockfd, &text, running);
 
     // Render chat messages
-    render_chat(renderer, font);
+    render_chat(renderer, font, name);
 
     // Free text buffer on cleanup
     if (!*running && text) {

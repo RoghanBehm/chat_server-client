@@ -79,6 +79,17 @@ int main(int argc, char *argv[])
 
     int sockfd = conn_setup();
 
+    char username[100];
+    char formatted_username[104];
+    printf("Enter username: ");
+    if (fgets(username, sizeof(username), stdin)) {
+        username[strcspn(username, "\n")] = '\0';
+        snprintf(formatted_username, sizeof(formatted_username), "%s%s", username, ": ");
+    } else {
+        printf("Error in username input");
+    }
+
+
     while (running)
     {
         frameStart = SDL_GetTicks(); 
@@ -103,7 +114,7 @@ int main(int argc, char *argv[])
             SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
             SDL_DestroyTexture(textTexture);
         }
-        client(renderer, font, sockfd, &running);
+        client(renderer, font, sockfd, &running, formatted_username);
         SDL_RenderPresent(renderer);
 
         Uint32 frameTime = SDL_GetTicks() - frameStart;
