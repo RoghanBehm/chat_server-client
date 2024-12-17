@@ -17,24 +17,24 @@
 
 #define PORT "9034"
 #define MAXDATASIZE 100
-#define MAX_MESSAGES 100
+#define MAX_MESSAGES 14
 #define MAX_MESSAGE_LENGTH 256
 
 char chat_messages[MAX_MESSAGES][MAX_MESSAGE_LENGTH];
 int message_count = 0;
 int message_start = 0;
 
-void add_message(char *new_message) {
+void add_message(char *new_message) { // Circular buffer to hold messages
     if (message_count < MAX_MESSAGES) {
 
         strncpy(chat_messages[message_count], new_message, MAX_MESSAGE_LENGTH - 1);
         chat_messages[message_count][MAX_MESSAGE_LENGTH - 1] = '\0'; 
         message_count++;
     } else {
-        // Overwrite the oldest message (circular buffer logic)
+
         strncpy(chat_messages[message_start], new_message, MAX_MESSAGE_LENGTH - 1);
         chat_messages[message_start][MAX_MESSAGE_LENGTH - 1] = '\0';
-        message_start = (message_start + 1) % MAX_MESSAGES; // Move the start index
+        message_start = (message_start + 1) % MAX_MESSAGES;
     }
 }
 
@@ -118,7 +118,7 @@ void client_conn(int sockfd, char **output_text, bool *running) {
 
         buf[numbytes] = '\0';
 
-        // update output_text
+        // update output_textRenderFill
         if (*output_text) {
             free(*output_text); // Free existing memory
         }
@@ -144,6 +144,11 @@ void client_conn(int sockfd, char **output_text, bool *running) {
     if (bytes_read == 0) {
         printf("Goodbye!\n");
         *running = false;
+        return;
+    }
+
+    if (bytes_read == 1 && input[0] == '\n') { // Check for empty STDIN input
+        printf("Please type one or more characters");
         return;
     }
 
@@ -182,6 +187,7 @@ void client_conn(int sockfd, char **output_text, bool *running) {
 
 // Render text to the SDL window
 void render_chat(SDL_Renderer *renderer, TTF_Font *font) {
+    
     SDL_Color color = {255, 255, 255, 255};
     SDL_Rect textbox = {50, 50, 500, 300};
 
