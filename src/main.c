@@ -70,10 +70,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    SDL_Color color = {255, 255, 255, 255};
-
-    char *text = "whats up guys";
-
     bool running = true;
     SDL_Event event;
 
@@ -103,17 +99,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        SDL_Rect textbox = {50, 50, 500, 300};
-        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255); // Grey background
-        SDL_RenderFillRect(renderer, &textbox);
 
-        SDL_Texture* textTexture = renderText(renderer, font, text, color);
-         if (textTexture) {
-            SDL_Rect textRect = {60, 60, 0, 0}; // Position text inside the textbox
-            SDL_QueryTexture(textTexture, NULL, NULL, &textRect.w, &textRect.h);
-            SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
-            SDL_DestroyTexture(textTexture);
-        }
         client(renderer, font, sockfd, &running, formatted_username);
         SDL_RenderPresent(renderer);
 
